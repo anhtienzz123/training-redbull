@@ -1,0 +1,59 @@
+version: "3"
+services:
+  elasticsearch-redbull:
+    image: elasticsearch:8.7.0
+    container_name: elasticsearch-redbull
+    restart: always
+    environment:
+      - xpack.security.enabled=false
+      - discovery.type=single-node
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    cap_add:
+      - IPC_LOCK
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    ports:
+      - 9200:9200
+    networks:
+      - elk
+  kibana-redbull:
+    image: kibana:8.7.0
+    container_name: kibana-redbull
+    restart: always
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch-redbull:9200   
+    ports:
+      - 5601:5601
+    depends_on:
+      - elasticsearch-redbull
+    networks:
+      - elk
+  logstash-redbull:
+    image: logstash:8.7.0
+    container_name: logstash-redbull
+    restart: always
+    volumes:
+      - logstash/:/logstash_dir
+      - javalog/:/usr/share/logstash/logs/
+    command: logstash -f /logstash_dir/logstash.conf 
+    depends_on:
+      - elasticsearch-redbull
+    ports:
+    - '9600:9600'
+    environment:
+      LS_JAVA_OPTS: "-Xmx256m -Xms256m"    
+    networks:
+      - elk                 
+volumes:
+  elasticsearch-data:
+  logstash:
+  javalog:
+
+networks:
+  elk:
